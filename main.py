@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field
 import httpx
+import re
+from pangea_client import check_url
 
 load_dotenv()
 
@@ -52,11 +54,11 @@ class WebhookMessage(BaseModel):
     entry: List[Entry]
 
 
-async def send_message(business_number, message: Message):
+async def send_message(business_number, message: Message, response_txt: str):
     message_data = {
         "messaging_product": "whatsapp",
         "to": message.from_user,
-        "text": {"body": "Echo: " + message.text.body},
+        "text": {"body": response_txt},
         "context": {"message_id": message.id},
     }
     url = f"https://graph.facebook.com/v18.0/{business_number}/messages"
@@ -64,6 +66,19 @@ async def send_message(business_number, message: Message):
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=message_data)
         response.raise_for_status()
+
+
+def extract_urls(text):
+    # Regular expression pattern to match URLs
+    url_pattern = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
+
+    # Find all URLs in the text
+    urls = re.findall(url_pattern, text)
+
+    # Extract the first element of each tuple in the list of URLs
+    urls = [url[0] for url in urls]
+
+    return urls
 
 
 @app.get("/webhook")
@@ -90,7 +105,17 @@ async def receive_message(message: WebhookMessage):
         # Loop through changes to find a message
         if message.entry[0].changes[0].value.messages[0].type == "text":
             business_number = webhook_changes[0].value.metadata.phone_number_id
-            await send_message(business_number, webhook_changes[0].value.messages[0])
+            urls = extract_urls(webhook_changes[0].value.messages[0].text.body)
+            print(urls)
+            for url in urls:
+                verdict, score = check_url(url)
+                if int(score) > 80:
+                    await send_message(
+                        business_number,
+                        webhook_changes[0].value.messages[0],
+                        f"This url: {url} is malicious",
+                    )
+                print(verdict, score)
 
         for change in webhook_changes:
             print(change.value.metadata.display_phone_number)
