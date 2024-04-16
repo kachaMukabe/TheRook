@@ -1,13 +1,16 @@
 from typing import List, Union
 
-from fastapi import FastAPI, Query, Response
+from fastapi import FastAPI, Query, Response, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 import os
 from dotenv import load_dotenv
 from fastapi.exceptions import HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 import httpx
 import re
 from pangea_client import check_url
+from models import Message, WebhookMessage
 
 load_dotenv()
 
@@ -17,41 +20,16 @@ VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 GRAPH_API_TOKEN = os.getenv("GRAPH_API_TOKEN")
 
 
-class Text(BaseModel):
-    body: str
+async def http422_error_handler(
+    _: Request, exc: Union[RequestValidationError, ValidationError]
+) -> JSONResponse:
+    toprint = await _.json()
+    print(toprint)
+    return JSONResponse({"errors": exc.errors()}, status_code=422)
 
 
-class Message(BaseModel):
-    from_user: str = Field(..., alias="from", alternate=True)
-    id: str
-    timestamp: str
-    type: str
-    text: Text
-
-
-class MetaData(BaseModel):
-    display_phone_number: str
-    phone_number_id: str
-
-
-class Value(BaseModel):
-    messaging_product: str
-    metadata: MetaData
-    messages: List[Message]
-
-
-class Change(BaseModel):
-    value: Value
-    field: str
-
-
-class Entry(BaseModel):
-    id: str
-    changes: List[Change]
-
-
-class WebhookMessage(BaseModel):
-    entry: List[Entry]
+app.add_exception_handler(ValidationError, http422_error_handler)
+app.add_exception_handler(RequestValidationError, http422_error_handler)
 
 
 async def send_message(business_number, message: Message, response_txt: str):
@@ -103,19 +81,20 @@ async def receive_message(message: WebhookMessage):
     if message.entry and message.entry[0].changes:
         webhook_changes = message.entry[0].changes
         # Loop through changes to find a message
-        if message.entry[0].changes[0].value.messages[0].type == "text":
-            business_number = webhook_changes[0].value.metadata.phone_number_id
-            urls = extract_urls(webhook_changes[0].value.messages[0].text.body)
-            print(urls)
-            for url in urls:
-                verdict, score = check_url(url)
-                if int(score) > 80:
-                    await send_message(
-                        business_number,
-                        webhook_changes[0].value.messages[0],
-                        f"This url: {url} is malicious",
-                    )
-                print(verdict, score)
+        if webhook_changes[0].value.messages:
+            if message.entry[0].changes[0].value.messages[0].type == "text":
+                business_number = webhook_changes[0].value.metadata.phone_number_id
+                urls = extract_urls(webhook_changes[0].value.messages[0].text.body)
+                print(urls)
+                for url in urls:
+                    verdict, score = check_url(url)
+                    if int(score) > 80:
+                        await send_message(
+                            business_number,
+                            webhook_changes[0].value.messages[0],
+                            f"This url: {url} is malicious",
+                        )
+                    print(verdict, score)
 
         for change in webhook_changes:
             print(change.value.metadata.display_phone_number)
