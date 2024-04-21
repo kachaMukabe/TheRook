@@ -7,10 +7,9 @@ import os
 from dotenv import load_dotenv
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field, ValidationError
-import httpx
-import re
 from pangea_client import check_url
-from models import Message, WebhookMessage
+from models import WebhookMessage
+from message_handler import handle_whatsapp_message
 
 load_dotenv()
 
@@ -32,33 +31,6 @@ app.add_exception_handler(ValidationError, http422_error_handler)
 app.add_exception_handler(RequestValidationError, http422_error_handler)
 
 
-async def send_message(business_number, message: Message, response_txt: str):
-    message_data = {
-        "messaging_product": "whatsapp",
-        "to": message.from_user,
-        "text": {"body": response_txt},
-        "context": {"message_id": message.id},
-    }
-    url = f"https://graph.facebook.com/v18.0/{business_number}/messages"
-    headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, headers=headers, json=message_data)
-        response.raise_for_status()
-
-
-def extract_urls(text):
-    # Regular expression pattern to match URLs
-    url_pattern = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
-
-    # Find all URLs in the text
-    urls = re.findall(url_pattern, text)
-
-    # Extract the first element of each tuple in the list of URLs
-    urls = [url[0] for url in urls]
-
-    return urls
-
-
 @app.get("/webhook")
 def webhook(
     mode: Union[str, None] = Query(default=None, alias="hub.mode"),
@@ -78,27 +50,6 @@ async def receive_message(message: WebhookMessage):
     print("Incoming webhook message:", message)
 
     # Check if the webhook request contains a message
-    if message.entry and message.entry[0].changes:
-        webhook_changes = message.entry[0].changes
-        # Loop through changes to find a message
-        if webhook_changes[0].value.messages:
-            if message.entry[0].changes[0].value.messages[0].type == "text":
-                business_number = webhook_changes[0].value.metadata.phone_number_id
-                urls = extract_urls(webhook_changes[0].value.messages[0].text.body)
-                print(urls)
-                for url in urls:
-                    verdict, score = check_url(url)
-                    if int(score) > 80:
-                        await send_message(
-                            business_number,
-                            webhook_changes[0].value.messages[0],
-                            f"This url: {url} is malicious",
-                        )
-                    print(verdict, score)
-
-        for change in webhook_changes:
-            print(change.value.metadata.display_phone_number)
-
-    # await send_reply_message(business_phone_number_id, messages[0])
+    await handle_whatsapp_message(message)
 
     return Response(status_code=200)

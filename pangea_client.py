@@ -9,6 +9,7 @@ from pangea.services.intel import (
     UrlIntel,
     URLReputationResult,
 )
+from pangea.services.redact import Redact
 
 load_dotenv()
 
@@ -20,6 +21,7 @@ domain = os.getenv("PANGEA_DOMAIN")
 assert domain
 config = PangeaConfig(domain=domain)
 intel = UrlIntel(token, config=config)
+redact = Redact(token, config=config)
 
 
 def check_url(url: str):
@@ -34,6 +36,17 @@ def check_url(url: str):
     except pe.PangeaAPIException as e:
         print(e)
     return None, None
+
+
+def redact_message(text: str):
+    try:
+        response = redact.redact(text, rules=["CREDIT_CARD", "PROFANITY"])
+        count = response.result.count
+        redacted_text = response.result.redacted_text
+        return count, redacted_text
+    except pe.PangeaAPIException as e:
+        print(e)
+    return 0, None
 
 
 def main():
