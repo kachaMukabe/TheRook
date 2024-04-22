@@ -23,7 +23,9 @@ async def http422_error_handler(
     _: Request, exc: Union[RequestValidationError, ValidationError]
 ) -> JSONResponse:
     toprint = await _.json()
+    print("Start request")
     print(toprint)
+    print("End request")
     return JSONResponse({"errors": exc.errors()}, status_code=422)
 
 

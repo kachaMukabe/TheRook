@@ -10,6 +10,7 @@ from pangea.services.intel import (
     URLReputationResult,
 )
 from pangea.services.redact import Redact
+from pangea.services.file_scan import FileScan
 
 load_dotenv()
 
@@ -22,6 +23,7 @@ assert domain
 config = PangeaConfig(domain=domain)
 intel = UrlIntel(token, config=config)
 redact = Redact(token, config=config)
+file_client = FileScan(token, config=config)
 
 
 def check_url(url: str):
@@ -47,6 +49,19 @@ def redact_message(text: str):
     except pe.PangeaAPIException as e:
         print(e)
     return 0, None
+
+
+def scan_file(file_path: str):
+    try:
+        with open(file_path, "rb") as f:
+            response = file_client.file_scan(
+                file=f, verbose=True, provider="crowdstrike"
+            )
+            print(f"Response: {response.result}")
+    except pe.PangeaAPIException as e:
+        print(e)
+        for err in e.errors:
+            print(f"\t{err.detail} \n")
 
 
 def main():

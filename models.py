@@ -7,12 +7,19 @@ class Text(BaseModel):
     body: str
 
 
+class Image(BaseModel):
+    mime_type: str
+    sha256: str
+    id: str
+
+
 class Message(BaseModel):
     from_user: str = Field(..., alias="from", alternate=True)
     id: str
     timestamp: str
     type: str
-    text: Text
+    text: Optional[Text]
+    image: Optional[Image]
 
 
 class Profile(BaseModel):
