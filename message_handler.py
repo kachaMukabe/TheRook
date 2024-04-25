@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from typing import List
 from models import Message, MetaData, Status, WebhookMessage
-from pangea_client import check_url, redact_message
+from pangea_client import check_url, redact_message, scan_file
 
 load_dotenv()
 
@@ -47,6 +47,26 @@ def extract_urls(text):
     return urls
 
 
+async def get_media_url(media_id: str):
+    url = f"https://graph.facebook.com/v19.0/{media_id}/"
+    headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
+    media_url = ""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers)
+        print(response)
+        print(response.json())
+        media_url = response.json()["url"]
+    return media_url
+
+
+async def download_media(url: str):
+    headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers)
+        return response.content
+    return None
+
+
 async def send_message(business_number, message: Message, response_txt: str):
     message_data = {
         "messaging_product": "whatsapp",
@@ -86,7 +106,13 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
         case "reaction":
             print("reaction")
         case "image":
-            print("image")
+            media_url = await get_media_url(message.image.id)
+            content = await download_media(media_url)
+            if content:
+                scan_file(content, f"{message.image.id}.jpeg")
+        case "document":
+            media_url_body = await get_media_url(message.image.id)
+            print(media_url_body)
         case "sticker":
             print("sticker")
         case "unkown":

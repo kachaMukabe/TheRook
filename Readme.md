@@ -1,5 +1,5 @@
 
-![Logo](https://pasteboard.co/pBHO1l9BqdBj.jpg)
+![Logo](https://github.com/kachaMukabe/TheRook/blob/main/25643.jpg)
 
 
 # The Rook

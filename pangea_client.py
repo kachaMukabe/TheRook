@@ -51,17 +51,24 @@ def redact_message(text: str):
     return 0, None
 
 
-def scan_file(file_path: str):
+def scan_file(content: bytes, name: str):
     try:
-        with open(file_path, "rb") as f:
+        with open(name, "wb") as f:
+            f.write(content)
+
+        with open(name, "rb") as f:
             response = file_client.file_scan(
                 file=f, verbose=True, provider="crowdstrike"
             )
             print(f"Response: {response.result}")
+            verdict = response.result.data["verdict"]
+            score = response.result.data["score"]
+            return verdict, score
     except pe.PangeaAPIException as e:
         print(e)
         for err in e.errors:
             print(f"\t{err.detail} \n")
+    return None, None
 
 
 def main():
