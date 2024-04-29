@@ -1,5 +1,5 @@
 
-![Logo](https://github.com/kachaMukabe/TheRook/blob/main/25643.jpg)
+![Logo](https://github.com/kachaMukabe/TheRook/blob/main/images/25643.jpg)
 
 
 # The Rook
@@ -9,7 +9,7 @@ The Rook a safety bot that sits and watches your whatsapp customer chats. It ens
 
 ## Demo
 
-Insert gif or link to demo
+![Demo](https://github.com/kachaMukabe/TheRook/blob/main/images/output.gif)
 
 
 ## Features
@@ -19,22 +19,23 @@ Insert gif or link to demo
 - It will redact any sensitive information like card numbers from the chat
 
 
-
-## Screenshots
-
-![App Screenshot](https://via.placeholder.com/468x300?text=App+Screenshot+Here)
-
-
 ## Roadmap
 
-- Additional browser support
+I have a few things I would like to fix up for the rook first and foremost is the file scan which is partially working at the moment.
 
-- Add more integrations
+More things on the roadmap are:
+
+- [ ] A deployment guideline for how to set up the bot
+- [ ] Setting up a database in order to keep message sessions
+- [ ] Handle the whatsapp message statuses
 
 
 ## Lessons Learned
 
-What did you learn while building this project? What challenges did you face and how did you overcome them?
+I learned the following things:
+- I learned how to use the Whatsapp cloud API, set up a test number and was able to process received messages
+- I learned about Pangea services and how to integrate them into my python application
+- I relearned Fastapi and pydantic models
 
 
 ## License

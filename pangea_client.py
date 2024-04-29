@@ -1,4 +1,5 @@
 import os
+import time
 
 import pangea.exceptions as pe
 from dotenv import load_dotenv
@@ -20,7 +21,7 @@ token = os.getenv("PANGEA_AUDIT_TOKEN")
 assert token
 domain = os.getenv("PANGEA_DOMAIN")
 assert domain
-config = PangeaConfig(domain=domain)
+config = PangeaConfig(domain=domain, queued_retry_enabled=False)
 intel = UrlIntel(token, config=config)
 redact = Redact(token, config=config)
 file_client = FileScan(token, config=config)
@@ -52,6 +53,7 @@ def redact_message(text: str):
 
 
 def scan_file(content: bytes, name: str):
+    exception = None
     try:
         with open(name, "wb") as f:
             f.write(content)
@@ -60,15 +62,31 @@ def scan_file(content: bytes, name: str):
             response = file_client.file_scan(
                 file=f, verbose=True, provider="crowdstrike"
             )
-            print(f"Response: {response.result}")
-            verdict = response.result.data["verdict"]
-            score = response.result.data["score"]
-            return verdict, score
-    except pe.PangeaAPIException as e:
-        print(e)
+    except pe.AcceptedRequestException as e:
+        # Save exception value to request result later
+        exception = e
+        print("This is a excepted exception")
+        print(f"Request Error: {e.response.summary}")
         for err in e.errors:
             print(f"\t{err.detail} \n")
-    return None, None
+    except pe.PangeaAPIException as e:
+        for err in e.errors:
+            print(f"\t{err.detail} \n")
+        return
+
+    time.sleep(20)
+
+    try:
+        # poll result, hopefully this should be ready
+        response = file_client.poll_result(exception)
+        print("Got result successfully...")
+        print(f"Response: {response.result}")
+    except pe.PangeaAPIException as e:
+        print(f"Request Error: {e.response.summary}")
+        for err in e.errors:
+            print(f"\t{err.detail} \n")
+
+    return None
 
 
 def main():

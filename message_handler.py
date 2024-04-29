@@ -100,7 +100,7 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
                     await send_message(
                         metadata.phone_number_id,
                         message,
-                        f"This URL: {url} is malicious.",
+                        f"This is an automated message. This URL: {url} is malicious. Kindly do not click on it and delete the message with it",
                     )
 
         case "reaction":
@@ -109,7 +109,7 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
             media_url = await get_media_url(message.image.id)
             content = await download_media(media_url)
             if content:
-                scan_file(content, f"{message.image.id}.jpeg")
+                poll_url = scan_file(content, f"{message.image.id}.jpeg")
         case "document":
             media_url_body = await get_media_url(message.image.id)
             print(media_url_body)
