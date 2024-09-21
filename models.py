@@ -14,12 +14,12 @@ class Image(BaseModel):
 
 
 class Message(BaseModel):
-    from_user: str = Field(..., alias="from", alternate=True)
+    from_user: str = Field(..., alias="from")
     id: str
     timestamp: str
     type: str
-    text: Optional[Text]
-    image: Optional[Image]
+    text: Optional[Text] = Field(None, description="Message text")
+    image: Optional[Image] = Field(None, description="Message image")
 
 
 class Profile(BaseModel):
@@ -57,7 +57,7 @@ class Origin(BaseModel):
 
 class Conversation(BaseModel):
     id: str
-    expiration_timestamp: Optional[str]
+    expiration_timestamp: Optional[str] = Field(None, description="Expiration timestamp")
     origin: Origin
 
 
@@ -72,18 +72,18 @@ class Status(BaseModel):
     status: str
     timestamp: str
     recipient_id: str
-    conversation: Optional[Conversation]
-    pricing: Optional[Pricing]
-    errors: Optional[WhatsappError]
+    conversation: Optional[Conversation] = Field(None, description="Conversation")
+    pricing: Optional[Pricing] = Field(None, description="Pricing")
+    errors: Optional[WhatsappError] = Field(None, description="Errors")
 
 
 class Value(BaseModel):
     messaging_product: str
     metadata: MetaData
-    messages: Optional[List[Message]]
-    contacts: Optional[List[Contact]]
-    errors: Optional[List[WhatsappError]]
-    statuses: Optional[List[Status]]
+    messages: Optional[List[Message]] = Field(None, description="List of messages")
+    contacts: Optional[List[Contact]] = Field(None, description="List of contacts")
+    errors: Optional[List[WhatsappError]] = Field(None, description="List of errors")
+    statuses: Optional[List[Status]] = Field(None, description="List of statuses")
 
 
 class Change(BaseModel):
@@ -97,4 +97,14 @@ class Entry(BaseModel):
 
 
 class WebhookMessage(BaseModel):
+    object: str 
     entry: List[Entry]
+
+class RapidProMessage(BaseModel):
+    id: str
+    to: str 
+    to_no_plus:str
+    from_: str = Field(alias="from")
+    from_no_plus: str 
+    channel: str
+

@@ -1,16 +1,19 @@
 import re
 import httpx
 import os
+from pprint import pprint
 
 from dotenv import load_dotenv
 from typing import List
 from models import Message, MetaData, Status, WebhookMessage
-from pangea_client import check_url, redact_message, scan_file
+
+# from pangea_client import check_url, redact_message, scan_file
 
 load_dotenv()
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 GRAPH_API_TOKEN = os.getenv("GRAPH_API_TOKEN")
+BUSINESS_PHONE_ID = os.getenv("BUSINESS_PHONE_ID")
 
 
 async def handle_whatsapp_message(message: WebhookMessage):
@@ -20,18 +23,25 @@ async def handle_whatsapp_message(message: WebhookMessage):
     if not message.entry[0].changes:
         return
 
+    # pprint(message)
+
     changes = message.entry[0].changes
     change_field = changes[0].field
 
     metadata = changes[0].value.metadata
     contacts = changes[0].value.contacts
     messages = changes[0].value.messages
-    statuses = changes[0].value.statuses
+    # statuses = changes[0].value.statuses if changes[0].value.statuses else None
 
     if messages:
+        print("Handle message")
         await handle_messages(messages, metadata)
-    if statuses:
-        handle_statuses(statuses)
+    # if statuses:
+    #    print("Handle status")
+    #    handle_statuses(statuses)
+
+
+# [{'value': {'messaging_product': 'whatsapp', 'metadata': {'display_phone_number': '15550785330', 'phone_number_id': '103460055715834'}, 'contacts': [{'profile': {'name': 'Kacha'}, 'wa_id': '260966581925'}], 'messages': [{'from': '260966581925', 'id': 'wamid.HBgMMjYwOTY2NTgxOTI1FQIAEhgUM0ExNURBMjY1QTM2MDkyMDIxMUEA', 'timestamp': '1725532731', 'text': {'body': 'Welcome'}, 'type': 'text'}]}, 'field': 'messages'}]
 
 
 def extract_urls(text):
@@ -81,35 +91,54 @@ async def send_message(business_number, message: Message, response_txt: str):
         response.raise_for_status()
 
 
+async def send_rapid_message(to_user, response_text):
+    message_data = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": to_user,
+        "type": "text",
+        "text": {"body": response_text},
+    }
+    print(message_data)
+    url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
+    headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, json=message_data)
+        response.raise_for_status()
+
+
 async def handle_messages(messages: List[Message], metadata: MetaData):
     message = messages[0]
     match message.type:
         case "text":
             print("text")
-            urls = extract_urls(message.text.body)
-            count, redacted_text = redact_message(message.text.body)
-            if count > 0:
-                await send_message(
-                    metadata.phone_number_id,
-                    message,
-                    f"This is an automated message, please note a unmasked card number has been detected in this message, kindly delete it and always use the following way of sending card numbers in messages. \n {redacted_text}",
-                )
-            for url in urls:
-                verdict, score = check_url(url)
-                if verdict == "malicious":
-                    await send_message(
-                        metadata.phone_number_id,
-                        message,
-                        f"This is an automated message. This URL: {url} is malicious. Kindly do not click on it and delete the message with it",
-                    )
+            #            count, redacted_text = redact_message(message.text.body)
+            #            if count > 0:
+            url = f"http://rapid.boroma.site/c/ex/c07fae3b-38ff-4e61-bc74-29b38d13f056/receive?text={message.text.body}&sender={message.from_user}"
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url)
+                print(response)
+            # await send_message(
+            #    metadata.phone_number_id,
+            #    message,
+            #    message.text.body,
+            # )
+        #            for url in urls:
+        #                verdict, score = check_url(url)
+        #                if verdict == "malicious":
+        #                    await send_message(
+        #                        metadata.phone_number_id,
+        #                        message,
+        #                        f"This is an automated message. This URL: {url} is malicious. Kindly do not click on it and delete the message with it",
+        #                    )
 
         case "reaction":
             print("reaction")
         case "image":
             media_url = await get_media_url(message.image.id)
             content = await download_media(media_url)
-            if content:
-                poll_url = scan_file(content, f"{message.image.id}.jpeg")
+            # if content:
+            # poll_url = scan_file(content, f"{message.image.id}.jpeg")
         case "document":
             media_url_body = await get_media_url(message.image.id)
             print(media_url_body)
