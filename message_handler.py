@@ -109,51 +109,66 @@ async def send_rapid_message(to_user, response_text):
 
 async def handle_messages(messages: List[Message], metadata: MetaData):
     message = messages[0]
-    match message.type:
-        case "text":
-            print("text")
-            #            count, redacted_text = redact_message(message.text.body)
-            #            if count > 0:
-            url = f"http://rapid.boroma.site/c/ex/c07fae3b-38ff-4e61-bc74-29b38d13f056/receive?text={message.text.body}&sender={message.from_user}"
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url)
-                print(response)
-            # await send_message(
-            #    metadata.phone_number_id,
-            #    message,
-            #    message.text.body,
-            # )
-        #            for url in urls:
-        #                verdict, score = check_url(url)
-        #                if verdict == "malicious":
-        #                    await send_message(
-        #                        metadata.phone_number_id,
-        #                        message,
-        #                        f"This is an automated message. This URL: {url} is malicious. Kindly do not click on it and delete the message with it",
-        #                    )
+    if message.type == "text":
+        print("text")
+        #            count, redacted_text = redact_message(message.text.body)
+        #            if count > 0:
+        url = f"http://rapid.boroma.site/c/ex/c07fae3b-38ff-4e61-bc74-29b38d13f056/receive?text={message.text.body}&sender={message.from_user}"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            print(response)
+    elif message.type == "reaction":
+        media_url = await get_media_url(message.image.id)
+        content = await download_media(media_url)
+    elif message.type == "image":
+        pass
+    else:
+        pass
+    # match message.type:
+    #     case "text":
+    #         print("text")
+    #         #            count, redacted_text = redact_message(message.text.body)
+    #         #            if count > 0:
+    #         url = f"http://rapid.boroma.site/c/ex/c07fae3b-38ff-4e61-bc74-29b38d13f056/receive?text={message.text.body}&sender={message.from_user}"
+    #         async with httpx.AsyncClient() as client:
+    #             response = await client.get(url)
+    #             print(response)
+    #         # await send_message(
+    #         #    metadata.phone_number_id,
+    #         #    message,
+    #         #    message.text.body,
+    #         # )
+    #     #            for url in urls:
+    #     #                verdict, score = check_url(url)
+    #     #                if verdict == "malicious":
+    #     #                    await send_message(
+    #     #                        metadata.phone_number_id,
+    #     #                        message,
+    #     #                        f"This is an automated message. This URL: {url} is malicious. Kindly do not click on it and delete the message with it",
+    #     #                    )
 
-        case "reaction":
-            print("reaction")
-        case "image":
-            media_url = await get_media_url(message.image.id)
-            content = await download_media(media_url)
-            # if content:
-            # poll_url = scan_file(content, f"{message.image.id}.jpeg")
-        case "document":
-            media_url_body = await get_media_url(message.image.id)
-            print(media_url_body)
-        case "sticker":
-            print("sticker")
-        case "unkown":
-            print("unkown")
-        case "button":
-            print("button")
-        case "list_reply":
-            print("list reply")
-        case "button_reply":
-            print("Button reply")
-        case _:
-            print("Other")
+    #     case "reaction":
+    #         print("reaction")
+    #     case "image":
+    #         media_url = await get_media_url(message.image.id)
+    #         content = await download_media(media_url)
+    #         # if content:
+    #         # poll_url = scan_file(content, f"{message.image.id}.jpeg")
+    #     case "document":
+    #         media_url_body = await get_media_url(message.image.id)
+    #         print(media_url_body)
+    #     case "sticker":
+    #         print("sticker")
+    #     case "unkown":
+    #         print("unkown")
+    #     case "button":
+    #         print("button")
+    #     case "list_reply":
+    #         print("list reply")
+    #     case "button_reply":
+    #         print("Button reply")
+    #     case _:
+    #         print("Other")
 
 
 def handle_statuses(statuses: List[Status]):
