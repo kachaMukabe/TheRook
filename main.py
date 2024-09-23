@@ -50,6 +50,11 @@ async def log_requests(request: Request, call_next):
     return response
 
 
+@app.get("/")
+def index():
+    return {"response": "Hello World"}
+
+
 @app.get("/webhook")
 def webhook(
     mode: Union[str, None] = Query(default=None, alias="hub.mode"),
