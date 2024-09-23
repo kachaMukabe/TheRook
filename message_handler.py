@@ -14,6 +14,7 @@ load_dotenv()
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 GRAPH_API_TOKEN = os.getenv("GRAPH_API_TOKEN")
 BUSINESS_PHONE_ID = os.getenv("BUSINESS_PHONE_ID")
+RAPID_PRO_URL = os.getenv("RAPID_PRO_URL")
 
 
 async def handle_whatsapp_message(message: WebhookMessage):
@@ -113,7 +114,7 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
         print("text")
         #            count, redacted_text = redact_message(message.text.body)
         #            if count > 0:
-        url = f"http://rapid.boroma.site/c/ex/c07fae3b-38ff-4e61-bc74-29b38d13f056/receive?text={message.text.body}&sender={message.from_user}"
+        url = f"{RAPID_PRO_URL}/receive?text={message.text.body}&sender={message.from_user}"
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             print(response)

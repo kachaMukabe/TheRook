@@ -1,11 +1,13 @@
 from typing import Union
 import urllib.parse
 import json
+import logging
 
 from fastapi import FastAPI, Query, Response, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 import os
+import sys
 from dotenv import load_dotenv
 from pydantic import ValidationError
 from models import WebhookMessage
@@ -18,14 +20,44 @@ app = FastAPI()
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 GRAPH_API_TOKEN = os.getenv("GRAPH_API_TOKEN")
 
+logging_config = {
+    "version": 1,
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "stream": sys.stdout,
+            "formatter": "default",
+        },
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": "app.log",
+            "formatter": "default",
+        },
+    },
+    "root": {
+        "level": "INFO",
+        "handlers": ["console", "file"],
+    },
+}
+
+logging.config.dictConfig(logging_config)
+
+logger = logging.getLogger(__name__)
+
 
 async def http422_error_handler(
     _: Request, exc: Union[RequestValidationError, ValidationError]
 ) -> JSONResponse:
-    toprint = await _.json()
     print("Start request")
+    toprint = await _.json()
     print(toprint)
     print("End request")
+    logger.error(toprint)
     return JSONResponse({"errors": exc.errors()}, status_code=422)
 
 
@@ -37,6 +69,7 @@ app.add_exception_handler(RequestValidationError, http422_error_handler)
 async def log_requests(request: Request, call_next):
     # Print request method and URL
     print(f"Incoming request: {request.method} {request.url}")
+    logger.info(f"Incoming request: {request.method} {request.url}")
 
     # Optionally, print headers or body
     headers = dict(request.headers)
@@ -44,6 +77,7 @@ async def log_requests(request: Request, call_next):
 
     body = await request.body()
     print(f"Body: {body.decode('utf-8') if body else 'No body'}")
+    logger.info(f"Body: {body.decode('utf-8') if body else 'No body'}")
 
     # Proceed with the request
     response = await call_next(request)
@@ -72,6 +106,7 @@ def webhook(
 @app.post("/webhook")
 async def receive_message(message: WebhookMessage):
     print("Incoming webhook message:", message)
+    logger.info("Incoming webhook message:", message)
 
     # Check if the webhook request contains a message
     await handle_whatsapp_message(message)
