@@ -1,6 +1,8 @@
 import re
 import httpx
 import os
+import sys
+import logging
 from pprint import pprint
 
 from dotenv import load_dotenv
@@ -10,6 +12,35 @@ from models import Message, MetaData, Status, WebhookMessage
 # from pangea_client import check_url, redact_message, scan_file
 
 load_dotenv()
+
+logging_config = {
+    "version": 1,
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "stream": sys.stdout,
+            "formatter": "default",
+        },
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": "app.log",
+            "formatter": "default",
+        },
+    },
+    "root": {
+        "level": "INFO",
+        "handlers": ["console", "file"],
+    },
+}
+
+logging.config.dictConfig(logging_config)
+
+logger = logging.getLogger(__name__)
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 GRAPH_API_TOKEN = os.getenv("GRAPH_API_TOKEN")
@@ -36,6 +67,7 @@ async def handle_whatsapp_message(message: WebhookMessage):
 
     if messages:
         print("Handle message")
+        logging.info("Handle message")
         await handle_messages(messages, metadata)
     # if statuses:
     #    print("Handle status")
@@ -101,6 +133,7 @@ async def send_rapid_message(to_user, response_text):
         "text": {"body": response_text},
     }
     print(message_data)
+    logging.info(message_data)
     url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
     headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
     async with httpx.AsyncClient() as client:
@@ -112,12 +145,14 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
     message = messages[0]
     if message.type == "text":
         print("text")
+        logging.info("text")
         #            count, redacted_text = redact_message(message.text.body)
         #            if count > 0:
         url = f"{RAPID_PRO_URL}/receive?text={message.text.body}&sender={message.from_user}"
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             print(response)
+            logging.info(response)
     elif message.type == "reaction":
         media_url = await get_media_url(message.image.id)
         content = await download_media(media_url)

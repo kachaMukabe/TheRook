@@ -117,6 +117,7 @@ async def receive_message(message: WebhookMessage):
 @app.post("/callback")
 async def rapid_pro_callback(request: Request):
     print("working")
+    logging.info("working")
     body = await request.body()
     decoded_data = body.decode("utf-8")
     parsed_data = urllib.parse.parse_qs(decoded_data)
@@ -125,5 +126,6 @@ async def rapid_pro_callback(request: Request):
     # Convert the dictionary to a JSON string
     json_data = json.dumps(cleaned_data, indent=4)
     print(json_data)
+    logging.info(json_data)
     await send_rapid_message(cleaned_data["to"], cleaned_data["text"])
     return Response("success", status_code=200)
