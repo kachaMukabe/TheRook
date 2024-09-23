@@ -86,7 +86,7 @@ async def log_requests(request: Request, call_next):
 
 @app.get("/")
 def index():
-    return {"response": "Hello World Again"}
+    return {"response": "No longer hello world but another test:Hello World Again"}
 
 
 @app.get("/webhook")
