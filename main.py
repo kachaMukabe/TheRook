@@ -129,8 +129,8 @@ async def rapid_pro_callback(request: Request):
     print(json_data)
     logging.info(json_data)
     command, text = cleaned_data["text"].split(":")
-    print(command)
-    print(text)
+    logging.info(command)
+    logging.info(text)
     if command == "interactive":
         await send_interactive_list(cleaned_data["to"], "This is a header", "This is the body of the text",
                                     "Footer here", "Press me", [Section(title="I'm a title", rows=[

@@ -170,6 +170,8 @@ async def send_interactive_list(to_user, header_text, text, footer_text, button_
             }
         }
     }
+    logging.info("Interactive message data")
+    logging.info(message_data)
 
     url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
     headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
