@@ -108,3 +108,12 @@ class RapidProMessage(BaseModel):
     from_no_plus: str 
     channel: str
 
+### WHATSAPP MESSAGE SENDING MODELS
+class Row(BaseModel):
+    id: str
+    title: str
+    description: str
+
+class Section(BaseModel):
+    title: str
+    rows: List[Row]

@@ -10,8 +10,9 @@ import os
 import sys
 from dotenv import load_dotenv
 from pydantic import ValidationError
-from models import WebhookMessage
-from message_handler import handle_whatsapp_message, send_rapid_message
+from models import WebhookMessage, Section, Row
+from message_handler import handle_whatsapp_message, send_rapid_message, send_interactive_list, send_image_message, \
+    send_catalog_message
 
 load_dotenv()
 
@@ -127,5 +128,21 @@ async def rapid_pro_callback(request: Request):
     json_data = json.dumps(cleaned_data, indent=4)
     print(json_data)
     logging.info(json_data)
-    await send_rapid_message(cleaned_data["to"], cleaned_data["text"])
+    command, text = cleaned_data["text"].split(":")
+    print(command)
+    print(text)
+    if command == "interactive":
+        await send_interactive_list(cleaned_data["to"], "This is a header", "This is the body of the text",
+                                    "Footer here", "Press me", [Section(title="I'm a title", rows=[
+                Row(id="1", title="Option 1", description="I'm option 1"),
+                Row(id="2", title="Option 2", description="I'm option 2"),
+                Row(id="3", title="Option 3", description="I'm option 3"),
+                Row(id="4", title="Option 4", description="I'm option 4"),
+            ])])
+    elif command == "image":
+        await send_image_message(cleaned_data["to"], caption="Test image", media_id="")
+    elif command == "catalog":
+        await send_catalog_message(cleaned_data["to"], "The main catalog", "And foooter")
+    else:
+        await send_rapid_message(cleaned_data["to"], cleaned_data["text"])
     return Response("success", status_code=200)
