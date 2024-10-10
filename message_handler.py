@@ -141,12 +141,7 @@ async def send_rapid_message(to_user, response_text):
         response.raise_for_status()
 
 async def send_interactive_list(to_user, header_text, text, footer_text, button_text, sections: List[Section]):
-    def build_section(section):
-        return {
-            "title": section.title,
-            "rows": [{"id": row.id, "title": row.title, "description": row.description} for row in section]
-        }
-    sections = [build_section(section) for section in sections]
+
     message_data = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
@@ -165,7 +160,7 @@ async def send_interactive_list(to_user, header_text, text, footer_text, button_
                 "text": footer_text
             },
             "action": {
-                "sections": sections,
+                "sections": [section.model_dump() for section in sections],
                 "button": button_text,
             }
         }
