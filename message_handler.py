@@ -234,6 +234,12 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
         content = await download_media(media_url)
     elif message.type == "image":
         pass
+    elif message.type == "interactive":
+        url = f"{RAPID_PRO_URL}/receive?text={message.interactive.list_reply.title}&sender={message.from_user}"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            print(response)
+            logging.info(response)
     else:
         pass
     # match message.type:

@@ -1,3 +1,5 @@
+from optparse import Option
+
 from pydantic import BaseModel, Field
 from typing import List, Optional, Union
 from datetime import datetime, timedelta
@@ -12,6 +14,14 @@ class Image(BaseModel):
     sha256: str
     id: str
 
+class ListReply(BaseModel):
+    id: str
+    title: str
+    description: str
+
+class Interactive(BaseModel):
+    type: str
+    list_reply: Optional[ListReply] = Field(None, description="List reply")
 
 class Message(BaseModel):
     from_user: str = Field(..., alias="from")
@@ -20,6 +30,7 @@ class Message(BaseModel):
     type: str
     text: Optional[Text] = Field(None, description="Message text")
     image: Optional[Image] = Field(None, description="Message image")
+    interactive: Optional[Interactive] = Field(None, description="Interactive object")
 
 
 class Profile(BaseModel):
