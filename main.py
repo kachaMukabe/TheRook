@@ -2,6 +2,8 @@ from typing import Union
 import urllib.parse
 import json
 import logging
+from pydantic_core import from_json
+import uvicorn
 
 from fastapi import FastAPI, Query, Response, Request
 from fastapi.responses import JSONResponse
@@ -128,7 +130,7 @@ async def rapid_pro_callback(request: Request):
     json_data = json.dumps(cleaned_data, indent=4)
     print(json_data)
     logging.info(json_data)
-    command_and_text = cleaned_data["text"].split(":")
+    command_and_text = cleaned_data["text"].split("#")
     if len(command_and_text) == 1:
         command = None
         text = command_and_text[0]
@@ -139,17 +141,27 @@ async def rapid_pro_callback(request: Request):
     logging.info(text)
     if command == "interactive":
         logging.info("In interactive")
-        await send_interactive_list(cleaned_data["to"], "This is a header", "This is the body of the text",
-                                    "Footer here", "Press me", [Section(title="I'm a title", rows=[
-                Row(id="1", title="Option 1", description="I'm option 1"),
-                Row(id="2", title="Option 2", description="I'm option 2"),
-                Row(id="3", title="Option 3", description="I'm option 3"),
-                Row(id="4", title="Option 4", description="I'm option 4"),
-            ])])
+        section_json = json.loads(command_and_text[1])
+        sections = [Section.model_validate(from_json(json.dumps(section))) for section in section_json]
+        header_text = command_and_text[2]
+        body_text = command_and_text[3]
+        footer_text = command_and_text[4]
+        button_text = command_and_text[5]
+        await send_interactive_list(cleaned_data["to"], header_text, body_text,
+                                    footer_text, button_text, sections)
     elif command == "image":
-        await send_image_message(cleaned_data["to"], caption="Test image", media_id="")
+        caption_text = command_and_text[1]
+        media_id = command_and_text[2]
+        await send_image_message(cleaned_data["to"], caption=caption_text, media_id=media_id)
     elif command == "catalog":
-        await send_catalog_message(cleaned_data["to"], "The main catalog", "And foooter")
+        body_text = command_and_text[1]
+        footer_text = command_and_text[2]
+        catalog_id = command_and_text[3]
+        product_id = command_and_text[4]
+        await send_catalog_message(cleaned_data["to"], body_text, footer_text, catalog_id, product_id)
     else:
         await send_rapid_message(cleaned_data["to"], cleaned_data["text"])
     return Response("success", status_code=200)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

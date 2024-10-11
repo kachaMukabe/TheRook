@@ -174,6 +174,7 @@ async def send_interactive_list(to_user, header_text, text, footer_text, button_
         response = await client.post(url, headers=headers, json=message_data)
         response.raise_for_status()
 
+
 async def send_image_message(to_user,caption, media_id=None, media_url=None):
     image = {"id": media_id, "caption": caption} if media_id else {"link": media_url, "caption": caption}
     message_data = {
@@ -190,7 +191,7 @@ async def send_image_message(to_user,caption, media_id=None, media_url=None):
         response = await client.post(url, headers=headers, json=message_data)
         response.raise_for_status()
 
-async def send_catalog_message(to_user, text, footer_text):
+async def send_catalog_message(to_user, text, footer_text, catalog_id="1845677735916982", product_id="3ry85up32o"):
     message_data = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
@@ -205,8 +206,8 @@ async def send_catalog_message(to_user, text, footer_text):
                 "text": footer_text
             },
             "action": {
-                "catalog_id": "1845677735916982",
-                "product_retailer_id": "3ry85up32o"
+                "catalog_id": catalog_id,
+                "product_retailer_id": product_id
             }
         }
     }
