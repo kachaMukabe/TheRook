@@ -143,10 +143,10 @@ async def rapid_pro_callback(request: Request):
         command = command_and_text[0]
         text = command_and_text[1]
     logging.info(command)
-    logging.info(text)
+    logging.info(text.replace("\\", ""))
     if command == "interactive":
         logging.info("In interactive")
-        section_json = json.loads(command_and_text[1])
+        section_json = json.loads(text.replace("\\", ""))
         sections = [
             Section.model_validate(from_json(json.dumps(section)))
             for section in section_json
