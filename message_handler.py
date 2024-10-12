@@ -140,7 +140,10 @@ async def send_rapid_message(to_user, response_text):
         response = await client.post(url, headers=headers, json=message_data)
         response.raise_for_status()
 
-async def send_interactive_list(to_user, header_text, text, footer_text, button_text, sections: List[Section]):
+
+async def send_interactive_list(
+    to_user, header_text, text, footer_text, button_text, sections: List[Section]
+):
 
     message_data = {
         "messaging_product": "whatsapp",
@@ -149,21 +152,14 @@ async def send_interactive_list(to_user, header_text, text, footer_text, button_
         "type": "interactive",
         "interactive": {
             "type": "list",
-            "header": {
-                "type": "text",
-                "text": header_text
-            },
-            "body": {
-                "text": text
-            },
-            "footer": {
-                "text": footer_text
-            },
+            "header": {"type": "text", "text": header_text},
+            "body": {"text": text},
+            "footer": {"text": footer_text},
             "action": {
                 "sections": [section.model_dump() for section in sections],
                 "button": button_text,
-            }
-        }
+            },
+        },
     }
     logging.info("Interactive message data")
     logging.info(message_data)
@@ -175,41 +171,18 @@ async def send_interactive_list(to_user, header_text, text, footer_text, button_
         response.raise_for_status()
 
 
-async def send_image_message(to_user,caption, media_id=None, media_url=None):
-    image = {"id": media_id, "caption": caption} if media_id else {"link": media_url, "caption": caption}
-    message_data = {
-      "messaging_product": "whatsapp",
-      "recipient_type": "individual",
-      "to": to_user,
-      "type": "image",
-      "image": image
-    }
-
-    url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
-    headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, headers=headers, json=message_data)
-        response.raise_for_status()
-
-async def send_catalog_message(to_user, text, footer_text, catalog_id="1845677735916982", product_id="3ry85up32o"):
+async def send_image_message(to_user, caption, media_id=None, media_url=None):
+    image = (
+        {"id": media_id, "caption": caption}
+        if media_id
+        else {"link": media_url, "caption": caption}
+    )
     message_data = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
-        "to": "260977662653",
-        "type": "interactive",
-        "interactive": {
-            "type": "product",
-            "body": {
-                "text": text
-            },
-            "footer": {
-                "text": footer_text
-            },
-            "action": {
-                "catalog_id": catalog_id,
-                "product_retailer_id": product_id
-            }
-        }
+        "to": to_user,
+        "type": "image",
+        "image": image,
     }
 
     url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
@@ -217,6 +190,30 @@ async def send_catalog_message(to_user, text, footer_text, catalog_id="184567773
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=message_data)
         response.raise_for_status()
+
+
+async def send_catalog_message(
+    to_user, text, footer_text, catalog_id="1845677735916982", product_id="3ry85up32o"
+):
+    message_data = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": to_user,
+        "type": "interactive",
+        "interactive": {
+            "type": "product",
+            "body": {"text": text},
+            "footer": {"text": footer_text},
+            "action": {"catalog_id": catalog_id, "product_retailer_id": product_id},
+        },
+    }
+
+    url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
+    headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, json=message_data)
+        response.raise_for_status()
+
 
 async def handle_messages(messages: List[Message], metadata: MetaData):
     message = messages[0]

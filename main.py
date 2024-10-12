@@ -13,8 +13,13 @@ import sys
 from dotenv import load_dotenv
 from pydantic import ValidationError
 from models import WebhookMessage, Section, Row
-from message_handler import handle_whatsapp_message, send_rapid_message, send_interactive_list, send_image_message, \
-    send_catalog_message
+from message_handler import (
+    handle_whatsapp_message,
+    send_rapid_message,
+    send_interactive_list,
+    send_image_message,
+    send_catalog_message,
+)
 
 load_dotenv()
 
@@ -142,26 +147,40 @@ async def rapid_pro_callback(request: Request):
     if command == "interactive":
         logging.info("In interactive")
         section_json = json.loads(command_and_text[1])
-        sections = [Section.model_validate(from_json(json.dumps(section))) for section in section_json]
+        sections = [
+            Section.model_validate(from_json(json.dumps(section)))
+            for section in section_json
+        ]
         header_text = command_and_text[2]
         body_text = command_and_text[3]
         footer_text = command_and_text[4]
         button_text = command_and_text[5]
-        await send_interactive_list(cleaned_data["to"], header_text, body_text,
-                                    footer_text, button_text, sections)
+        await send_interactive_list(
+            cleaned_data["to"],
+            header_text,
+            body_text,
+            footer_text,
+            button_text,
+            sections,
+        )
     elif command == "image":
         caption_text = command_and_text[1]
         media_id = command_and_text[2]
-        await send_image_message(cleaned_data["to"], caption=caption_text, media_id=media_id)
+        await send_image_message(
+            cleaned_data["to"], caption=caption_text, media_id=media_id
+        )
     elif command == "catalog":
         body_text = command_and_text[1]
         footer_text = command_and_text[2]
         catalog_id = command_and_text[3]
         product_id = command_and_text[4]
-        await send_catalog_message(cleaned_data["to"], body_text, footer_text, catalog_id, product_id)
+        await send_catalog_message(
+            cleaned_data["to"], body_text, footer_text, catalog_id, product_id
+        )
     else:
         await send_rapid_message(cleaned_data["to"], cleaned_data["text"])
     return Response("success", status_code=200)
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
