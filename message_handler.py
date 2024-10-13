@@ -258,6 +258,12 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
             response = await client.get(url)
             print(response)
             logging.info(response)
+    elif message.type == "location":
+        url = f"{RAPID_PRO_URL}/receive?text={message.location.latitude},{message.location.longitude}&sender={message.from_user}"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            print(response)
+            logging.info(response)
     elif message.type == "order":
         await send_message(
             metadata.phone_number_id,

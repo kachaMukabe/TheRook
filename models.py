@@ -14,14 +14,24 @@ class Image(BaseModel):
     sha256: str
     id: str
 
+
 class ListReply(BaseModel):
     id: str
     title: str
     description: str
 
+
 class Interactive(BaseModel):
     type: str
     list_reply: Optional[ListReply] = Field(None, description="List reply")
+
+
+class Location(BaseModel):
+    latitude: str
+    longitude: str
+    name: Optional[str] = Field(None)
+    address: Optional[str] = Field(None)
+
 
 class Message(BaseModel):
     from_user: str = Field(..., alias="from")
@@ -31,6 +41,7 @@ class Message(BaseModel):
     text: Optional[Text] = Field(None, description="Message text")
     image: Optional[Image] = Field(None, description="Message image")
     interactive: Optional[Interactive] = Field(None, description="Interactive object")
+    location: Optional[Location] = Field(None, description="Location object")
 
 
 class Profile(BaseModel):
@@ -68,7 +79,9 @@ class Origin(BaseModel):
 
 class Conversation(BaseModel):
     id: str
-    expiration_timestamp: Optional[str] = Field(None, description="Expiration timestamp")
+    expiration_timestamp: Optional[str] = Field(
+        None, description="Expiration timestamp"
+    )
     origin: Origin
 
 
@@ -108,22 +121,25 @@ class Entry(BaseModel):
 
 
 class WebhookMessage(BaseModel):
-    object: str 
+    object: str
     entry: List[Entry]
+
 
 class RapidProMessage(BaseModel):
     id: str
-    to: str 
-    to_no_plus:str
+    to: str
+    to_no_plus: str
     from_: str = Field(alias="from")
-    from_no_plus: str 
+    from_no_plus: str
     channel: str
+
 
 ### WHATSAPP MESSAGE SENDING MODELS
 class Row(BaseModel):
     id: str
     title: str
     description: str
+
 
 class Section(BaseModel):
     title: str
