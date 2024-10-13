@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from models import WebhookMessage, Section, Row
 from message_handler import (
     handle_whatsapp_message,
+    send_location_request_message,
     send_rapid_message,
     send_interactive_list,
     send_image_message,
@@ -177,6 +178,8 @@ async def rapid_pro_callback(request: Request):
         await send_catalog_message(
             cleaned_data["to"], body_text, footer_text, catalog_id, product_id
         )
+    elif command == "location":
+        await send_location_request_message(cleaned_data["to"], text)
     else:
         await send_rapid_message(cleaned_data["to"], cleaned_data["text"])
     return Response("success", status_code=200)

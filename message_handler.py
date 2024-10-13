@@ -215,6 +215,26 @@ async def send_catalog_message(
         response.raise_for_status()
 
 
+async def send_location_request_message(to_user, text):
+    message_data = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "type": "interactive",
+        "to": to_user,
+        "interactive": {
+            "type": "location_request_message",
+            "body": {"text": text},
+            "action": {"name": "send_location"},
+        },
+    }
+
+    url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
+    headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, json=message_data)
+        response.raise_for_status()
+
+
 async def handle_messages(messages: List[Message], metadata: MetaData):
     message = messages[0]
     if message.type == "text":
@@ -238,6 +258,12 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
             response = await client.get(url)
             print(response)
             logging.info(response)
+    elif message.type == "order":
+        await send_message(
+            metadata.phone_number_id,
+            message,
+            "Your order has been placed. You will recieve a payment link shortly",
+        )
     else:
         pass
     # match message.type:
