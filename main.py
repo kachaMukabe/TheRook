@@ -81,6 +81,7 @@ async def log_requests(request: Request, call_next):
     # Optionally, print headers or body
     headers = dict(request.headers)
     print(f"Headers: {headers}")
+    logger.info(f"Headers: {headers}")
 
     body = await request.body()
     print(f"Body: {body.decode('utf-8') if body else 'No body'}")
