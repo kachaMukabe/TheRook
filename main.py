@@ -130,8 +130,11 @@ async def rapid_pro_callback(request: Request):
     logging.info("working")
     body = await request.body()
     decoded_data = body.decode("utf-8")
+    logging.info("decoded")
     parsed_data = urllib.parse.parse_qs(decoded_data)
+    logging.info("parsed")
     cleaned_data = {key: value[0].strip('"') for key, value in parsed_data.items()}
+    logging.info(cleaned_data)
 
     message_data = yaml.safe_load(cleaned_data["text"])
     logging.info(message_data)
