@@ -125,10 +125,6 @@ async def receive_message(message: WebhookMessage):
 async def rapid_pro_callback(
     text: str = Form(),
     to: str = Form(),
-    to_no_plus: str = Form(),
-    from_no_plus: str = Form(),
-    id: str = Form(),
-    channel: str = Form(),
 ):
     print("working")
     logging.info("working")
