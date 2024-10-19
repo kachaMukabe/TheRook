@@ -1,19 +1,16 @@
 from typing import Union
-import urllib.parse
-import json
 import yaml
 import logging
-from pydantic_core import from_json
 import uvicorn
 
-from fastapi import FastAPI, Query, Response, Request
+from fastapi import FastAPI, Form, Query, Response, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 import os
 import sys
 from dotenv import load_dotenv
 from pydantic import ValidationError
-from models import WebhookMessage, Section, Row
+from models import WebhookMessage, Section
 from message_handler import (
     handle_whatsapp_message,
     send_location_request_message,
@@ -125,18 +122,19 @@ async def receive_message(message: WebhookMessage):
 
 
 @app.post("/callback")
-async def rapid_pro_callback(request: Request):
+async def rapid_pro_callback(
+    text: str = Form(),
+    to: str = Form(),
+    to_no_plus: str = Form(),
+    from_no_plus: str = Form(),
+    id: str = Form(),
+    channel: str = Form(),
+):
     print("working")
     logging.info("working")
-    body = await request.body()
-    decoded_data = body.decode("utf-8")
-    logging.info("decoded")
-    parsed_data = urllib.parse.parse_qs(decoded_data)
-    logging.info("parsed")
-    cleaned_data = {key: value[0].strip('"') for key, value in parsed_data.items()}
-    logging.info(cleaned_data)
+    logging.info(text)
 
-    message_data = yaml.safe_load(cleaned_data["text"])
+    message_data = yaml.safe_load(text)
     logging.info(message_data)
 
     if type(message_data) is dict:
@@ -150,7 +148,7 @@ async def rapid_pro_callback(request: Request):
             footer_text = message_data["footer"]
             button_text = message_data["button"]
             await send_interactive_list(
-                cleaned_data["to"],
+                to,
                 message_data["header"],
                 message_data["body"],
                 message_data["footer"],
@@ -160,23 +158,19 @@ async def rapid_pro_callback(request: Request):
         elif message_data["type"] == "image":
             caption_text = message_data["caption"]
             media_id = message_data["media_id"]
-            await send_image_message(
-                cleaned_data["to"], caption=caption_text, media_id=media_id
-            )
+            await send_image_message(to, caption=caption_text, media_id=media_id)
         elif message_data["type"] == "catalog":
             body_text = message_data["body"]
             footer_text = message_data["footer"]
             catalog_id = message_data["catalog"]
             product_id = message_data["product"]
             await send_catalog_message(
-                cleaned_data["to"], body_text, footer_text, catalog_id, product_id
+                to, body_text, footer_text, catalog_id, product_id
             )
         elif message_data["type"] == "location":
-            await send_location_request_message(
-                cleaned_data["to"], message_data["body"]
-            )
+            await send_location_request_message(to, message_data["body"])
     else:
-        await send_rapid_message(cleaned_data["to"], message_data)
+        await send_rapid_message(to, message_data)
     return Response("success", status_code=200)
 
 
