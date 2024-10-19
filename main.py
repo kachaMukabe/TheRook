@@ -1,6 +1,7 @@
 from typing import Union
 import urllib.parse
 import json
+import yaml
 import logging
 from pydantic_core import from_json
 import uvicorn
@@ -132,56 +133,47 @@ async def rapid_pro_callback(request: Request):
     parsed_data = urllib.parse.parse_qs(decoded_data)
     cleaned_data = {key: value[0].strip('"') for key, value in parsed_data.items()}
 
-    # Convert the dictionary to a JSON string
-    json_data = json.dumps(cleaned_data, indent=4)
-    print(json_data)
-    logging.info(json_data)
-    command_and_text = cleaned_data["text"].split("#")
-    if len(command_and_text) == 1:
-        command = None
-        text = command_and_text[0]
+    message_data = yaml.safe_load(cleaned_data["text"])
+    logging.info(message_data)
+
+    if type(message_data) is dict:
+        if message_data["type"] == "interactive":
+            logging.info("In interactive")
+            sections = [
+                Section.model_validate(section) for section in message_data["sections"]
+            ]
+            header_text = message_data["header"]
+            body_text = message_data["body"]
+            footer_text = message_data["footer"]
+            button_text = message_data["button"]
+            await send_interactive_list(
+                cleaned_data["to"],
+                message_data["header"],
+                message_data["body"],
+                message_data["footer"],
+                message_data["button"],
+                sections,
+            )
+        elif message_data["type"] == "image":
+            caption_text = message_data["caption"]
+            media_id = message_data["media_id"]
+            await send_image_message(
+                cleaned_data["to"], caption=caption_text, media_id=media_id
+            )
+        elif message_data["type"] == "catalog":
+            body_text = message_data["body"]
+            footer_text = message_data["footer"]
+            catalog_id = message_data["catalog"]
+            product_id = message_data["product"]
+            await send_catalog_message(
+                cleaned_data["to"], body_text, footer_text, catalog_id, product_id
+            )
+        elif message_data["type"] == "location":
+            await send_location_request_message(
+                cleaned_data["to"], message_data["body"]
+            )
     else:
-        command = command_and_text[0]
-        text = command_and_text[1]
-    logging.info(command)
-    logging.info(text.replace("\\", ""))
-    if command == "interactive":
-        logging.info("In interactive")
-        section_json = json.loads(text.replace("\\", ""))
-        sections = [
-            Section.model_validate(from_json(json.dumps(section)))
-            for section in section_json
-        ]
-        header_text = command_and_text[2]
-        body_text = command_and_text[3]
-        footer_text = command_and_text[4]
-        button_text = command_and_text[5]
-        await send_interactive_list(
-            cleaned_data["to"],
-            header_text,
-            body_text,
-            footer_text,
-            button_text,
-            sections,
-        )
-    elif command == "image":
-        caption_text = command_and_text[1]
-        media_id = command_and_text[2]
-        await send_image_message(
-            cleaned_data["to"], caption=caption_text, media_id=media_id
-        )
-    elif command == "catalog":
-        body_text = command_and_text[1]
-        footer_text = command_and_text[2]
-        catalog_id = command_and_text[3]
-        product_id = command_and_text[4]
-        await send_catalog_message(
-            cleaned_data["to"], body_text, footer_text, catalog_id, product_id
-        )
-    elif command == "location":
-        await send_location_request_message(cleaned_data["to"], text)
-    else:
-        await send_rapid_message(cleaned_data["to"], cleaned_data["text"])
+        await send_rapid_message(cleaned_data["to"], message_data)
     return Response("success", status_code=200)
 
 
