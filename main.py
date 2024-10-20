@@ -10,7 +10,7 @@ import os
 import sys
 from dotenv import load_dotenv
 from pydantic import ValidationError
-from models import WebhookMessage, Section
+from models import RapidProMessage, WebhookMessage, Section
 from message_handler import (
     handle_whatsapp_message,
     send_location_request_message,
@@ -123,15 +123,12 @@ async def receive_message(message: WebhookMessage):
 
 
 @app.post("/callback")
-async def rapid_pro_callback(
-    text: str = Form(),
-    to: str = Form(),
-):
+async def rapid_pro_callback(message: RapidProMessage):
     print("working")
     logging.info("working")
-    logging.info(text)
+    logging.info(message)
 
-    message_data = yaml.safe_load(text)
+    message_data = yaml.safe_load(message.text)
     logging.info(message_data)
 
     if type(message_data) is dict:
@@ -140,34 +137,40 @@ async def rapid_pro_callback(
             sections = [
                 Section.model_validate(section) for section in message_data["sections"]
             ]
-            header_text = message_data["header"]
+            header_text = (
+                message_data["header"] if message_data["header"] is not None else ""
+            )
             body_text = message_data["body"]
-            footer_text = message_data["footer"]
+            footer_text = (
+                message_data["footer"] if message_data["footer"] is not None else ""
+            )
             button_text = message_data["button"]
             await send_interactive_list(
-                to,
-                message_data["header"],
+                message.to,
+                header_text,
                 message_data["body"],
-                message_data["footer"],
+                footer_text,
                 message_data["button"],
                 sections,
             )
         elif message_data["type"] == "image":
             caption_text = message_data["caption"]
             media_id = message_data["media_id"]
-            await send_image_message(to, caption=caption_text, media_id=media_id)
+            await send_image_message(
+                message.to, caption=caption_text, media_id=media_id
+            )
         elif message_data["type"] == "catalog":
             body_text = message_data["body"]
             footer_text = message_data["footer"]
             catalog_id = message_data["catalog"]
             product_id = message_data["product"]
             await send_catalog_message(
-                to, body_text, footer_text, catalog_id, product_id
+                message.to, body_text, footer_text, catalog_id, product_id
             )
         elif message_data["type"] == "location":
-            await send_location_request_message(to, message_data["body"])
+            await send_location_request_message(message.to, message_data["body"])
     else:
-        await send_rapid_message(to, message_data)
+        await send_rapid_message(message.to, message_data)
     return Response("success", status_code=200)
 
 

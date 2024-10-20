@@ -132,6 +132,7 @@ class RapidProMessage(BaseModel):
     from_: str = Field(alias="from")
     from_no_plus: str
     channel: str
+    text: str
 
 
 ### WHATSAPP MESSAGE SENDING MODELS
