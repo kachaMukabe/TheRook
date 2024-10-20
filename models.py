@@ -1,8 +1,5 @@
-from optparse import Option
-
 from pydantic import BaseModel, Field
-from typing import List, Optional, Union
-from datetime import datetime, timedelta
+from typing import List, Optional
 
 
 class Text(BaseModel):
@@ -18,7 +15,7 @@ class Image(BaseModel):
 class ListReply(BaseModel):
     id: str
     title: str
-    description: str
+    description: Optional[str] = Field(None)
 
 
 class Interactive(BaseModel):
