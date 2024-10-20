@@ -124,7 +124,6 @@ async def receive_message(message: WebhookMessage):
 
 @app.post("/callback")
 async def rapid_pro_callback(message: RapidProMessage):
-    print("working")
     logging.info("working")
     logging.info(message)
 

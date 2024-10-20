@@ -31,6 +31,7 @@ class Location(BaseModel):
     longitude: str
     name: Optional[str] = Field(None)
     address: Optional[str] = Field(None)
+    url: Optional[str] = Field(None)
 
 
 class Message(BaseModel):
