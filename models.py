@@ -24,11 +24,16 @@ class Interactive(BaseModel):
 
 
 class Location(BaseModel):
-    latitude: str
-    longitude: str
+    latitude: float
+    longitude: float
     name: Optional[str] = Field(None)
     address: Optional[str] = Field(None)
     url: Optional[str] = Field(None)
+
+
+class Context(BaseModel):
+    from_user: str = Field(..., alias="from")
+    id: str
 
 
 class Message(BaseModel):
@@ -36,6 +41,7 @@ class Message(BaseModel):
     id: str
     timestamp: str
     type: str
+    context: Optional[Context] = Field(None, description="Context")
     text: Optional[Text] = Field(None, description="Message text")
     image: Optional[Image] = Field(None, description="Message image")
     interactive: Optional[Interactive] = Field(None, description="Interactive object")
