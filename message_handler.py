@@ -259,7 +259,7 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
             print(response)
             logging.info(response)
     elif message.type == "location":
-        url = f"{RAPID_PRO_URL}/receive?text={message.location.name}&sender={message.from_user}"
+        url = f"{RAPID_PRO_URL}/receive?text=test&sender={message.from_user}"
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             print(response)
