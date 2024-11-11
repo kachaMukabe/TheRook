@@ -10,14 +10,14 @@ import os
 import sys
 from dotenv import load_dotenv
 from pydantic import ValidationError
-from models import RapidProMessage, WebhookMessage, Section
+from models import RapidProMessage, WebhookMessage, Section, ProductSection
 from message_handler import (
     handle_whatsapp_message,
     send_location_request_message,
     send_rapid_message,
     send_interactive_list,
     send_image_message,
-    send_catalog_message,
+    send_catalog_message, send_template_message,
 )
 
 load_dotenv()
@@ -152,6 +152,15 @@ async def rapid_pro_callback(message: RapidProMessage):
                 message_data["button"],
                 sections,
             )
+        elif message_data["type"] == "template":
+            sections = [
+                ProductSection.model_validate(section) for section in message_data["sections"]
+            ]
+            header_text = (
+                message_data["header"] if message_data["header"] is not None else ""
+            )
+
+            await  send_template_message(message.to, header_text, sections)
         elif message_data["type"] == "image":
             caption_text = message_data["caption"]
             media_id = message_data["media_id"]

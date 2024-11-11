@@ -7,7 +7,7 @@ from pprint import pprint
 
 from dotenv import load_dotenv
 from typing import List
-from models import Message, MetaData, Status, WebhookMessage, Section
+from models import Message, MetaData, Status, WebhookMessage, Section, ProductSection
 
 # from pangea_client import check_url, redact_message, scan_file
 
@@ -214,6 +214,55 @@ async def send_catalog_message(
         response = await client.post(url, headers=headers, json=message_data)
         response.raise_for_status()
 
+
+async def send_template_message(to_user, header_text, sections: List[ProductSection]):
+    message_data = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to_user,
+            "type": "template",
+            "template": {
+                "name": "view_specific_items",
+                "language": {
+                    "code": "en"
+                },
+                "components": [
+                    {
+                        "type": "header",
+                        "parameters": [
+                            {
+                                "type": "text",
+                                "text": header_text
+                            }
+                        ]
+                    },
+                    {
+                        "type": "body",
+                        "parameters": []
+                    },
+                    {
+                        "type": "button",
+                        "sub_type": "mpm",
+                        "index": 0,
+                        "parameters": [
+                            {
+                                "type": "action",
+                                "action": {
+                                    "thumbnail_product_retailer_id": "3ry85up32o",
+                                    "sections": [section.model_dump() for section in sections]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+    }
+
+    url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
+    headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, json=message_data)
+        response.raise_for_status()
 
 async def send_location_request_message(to_user, text):
     message_data = {
