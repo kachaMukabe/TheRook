@@ -248,7 +248,7 @@ async def send_template_message(to_user, header_text, sections: List[ProductSect
                             {
                                 "type": "action",
                                 "action": {
-                                    "thumbnail_product_retailer_id": "3ry85up32o",
+                                    "thumbnail_product_retailer_id": sections[0].product_items[0].product_retailer_id,
                                     "sections": [section.model_dump() for section in sections]
                                 }
                             }
