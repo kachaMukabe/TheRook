@@ -34,7 +34,7 @@ class Location(BaseModel):
 class ProductItem(BaseModel):
     product_retailer_id: str
     quantity: int
-    item_price: int
+    item_price: float
     currency: str
 
 
