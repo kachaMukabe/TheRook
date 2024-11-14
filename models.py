@@ -31,6 +31,19 @@ class Location(BaseModel):
     url: Optional[str] = Field(None)
 
 
+class ProductItem(BaseModel):
+    product_retailer_id: str
+    quantity: int
+    item_price: int
+    currency: str
+
+
+class Order(BaseModel):
+    catalog_id: str
+    text: str
+    product_items: List[ProductItem]
+
+
 class Context(BaseModel):
     from_user: str = Field(..., alias="from")
     id: str
@@ -46,6 +59,7 @@ class Message(BaseModel):
     image: Optional[Image] = Field(None, description="Message image")
     interactive: Optional[Interactive] = Field(None, description="Interactive object")
     location: Optional[Location] = Field(None, description="Location object")
+    order: Optional[Order] = Field(None, description="Order object")
 
 
 class Profile(BaseModel):
