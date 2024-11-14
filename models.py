@@ -59,7 +59,7 @@ class Message(BaseModel):
     image: Optional[Image] = Field(None, description="Message image")
     interactive: Optional[Interactive] = Field(None, description="Interactive object")
     location: Optional[Location] = Field(None, description="Location object")
-    order: Optional[Order] = Field(None, description="Order object")
+    #order: Optional[Order] = Field(None, description="Order object")
 
 
 class Profile(BaseModel):
