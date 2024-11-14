@@ -314,7 +314,7 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
             print(response)
             logging.info(response)
     elif message.type == "order":
-        url = f"{RAPID_PRO_URL}/receive?text=order_{message.order.catalog_id}&sender={message.from_user}"
+        url = f"{RAPID_PRO_URL}/receive?text=order_ {message.order.catalog_id}&sender={message.from_user}"
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             print(response)

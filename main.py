@@ -114,7 +114,7 @@ def webhook(
 @app.post("/webhook")
 async def receive_message(message: WebhookMessage):
     print("Incoming webhook message:", message)
-    logger.info("Incoming webhook message:", message)
+    logger.info(f"Incoming webhook message: {message}")
 
     # Check if the webhook request contains a message
     await handle_whatsapp_message(message)
