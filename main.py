@@ -127,7 +127,11 @@ async def rapid_pro_callback(message: RapidProMessage):
     logging.info("working")
     logging.info(message)
 
-    message_data = yaml.safe_load(message.text)
+    try:
+        message_data = yaml.safe_load(message.text)
+    except Exception as e:
+        logging.error(e)
+        message_data = message.text
     logging.info(message_data)
 
     if type(message_data) is dict:
