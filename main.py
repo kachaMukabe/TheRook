@@ -2,7 +2,10 @@ from typing import Union
 import yaml
 import logging
 import uvicorn
+import smtplib
 
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from fastapi import FastAPI, Form, Query, Response, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -17,7 +20,8 @@ from message_handler import (
     send_rapid_message,
     send_interactive_list,
     send_image_message,
-    send_catalog_message, send_template_message,
+    send_catalog_message,
+    send_template_message,
 )
 
 load_dotenv()
@@ -26,6 +30,11 @@ app = FastAPI()
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 GRAPH_API_TOKEN = os.getenv("GRAPH_API_TOKEN")
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = os.getenv("SMTP_PORT")
+EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
+TO_EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 logging_config = {
     "version": 1,
@@ -158,13 +167,14 @@ async def rapid_pro_callback(message: RapidProMessage):
             )
         elif message_data["type"] == "template":
             sections = [
-                ProductSection.model_validate(section) for section in message_data["sections"]
+                ProductSection.model_validate(section)
+                for section in message_data["sections"]
             ]
             header_text = (
                 message_data["header"] if message_data["header"] is not None else ""
             )
 
-            await  send_template_message(message.to, header_text, sections)
+            await send_template_message(message.to, header_text, sections)
         elif message_data["type"] == "image":
             caption_text = message_data["caption"]
             media_id = message_data["media_id"]
@@ -184,6 +194,30 @@ async def rapid_pro_callback(message: RapidProMessage):
     else:
         await send_rapid_message(message.to, message_data)
     return Response("success", status_code=200)
+
+
+@app.post("/send-email")
+async def send_email(message: RapidProMessage):
+    try:
+        # Create the email
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_ADDRESS
+        msg["To"] = TO_EMAIL_ADDRESS  # You can change this to the recipient's email
+        msg["Subject"] = "New RapidPro Message"
+
+        # Add the message text
+        msg.attach(MIMEText(message.text, "plain"))
+
+        # Connect to the SMTP server and send the email
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_ADDRESS, EMAIL_ADDRESS, msg.as_string())
+
+        return {"status": "Email sent successfully"}
+    except Exception as e:
+        logger.error(f"Failed to send email: {e}")
+        return {"status": "Failed to send email", "error": str(e)}
 
 
 if __name__ == "__main__":
