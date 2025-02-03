@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Generic, TypeVar
+
+T = TypeVar("T")
 
 
 class Text(BaseModel):
@@ -153,6 +155,28 @@ class RapidProMessage(BaseModel):
     text: str
 
 
+class RapidContact(BaseModel):
+    uuid: str
+    urn: str
+    name: str
+
+
+class RapidFlow(BaseModel):
+    uuid: str
+    name: str
+
+
+class RapidResults(BaseModel):
+    value: str
+    category: str
+
+
+class RapidProEmailMessage(BaseModel):
+    contact: RapidContact
+    flow: RapidFlow
+    results: T
+
+
 ### WHATSAPP MESSAGE SENDING MODELS
 class Row(BaseModel):
     id: str
@@ -209,4 +233,3 @@ class Model(BaseModel):
     to: str
     type: str
     template: Template
-

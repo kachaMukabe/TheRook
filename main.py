@@ -3,17 +3,25 @@ import yaml
 import logging
 import uvicorn
 import smtplib
+import gspread
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from fastapi import FastAPI, Form, Query, Response, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from google.oauth2.service_account import Credentials
 import os
 import sys
 from dotenv import load_dotenv
 from pydantic import ValidationError
-from models import RapidProMessage, WebhookMessage, Section, ProductSection
+from models import (
+    RapidProEmailMessage,
+    RapidProMessage,
+    WebhookMessage,
+    Section,
+    ProductSection,
+)
 from message_handler import (
     handle_whatsapp_message,
     send_location_request_message,
@@ -33,8 +41,18 @@ GRAPH_API_TOKEN = os.getenv("GRAPH_API_TOKEN")
 SMTP_SERVER = os.getenv("SMTP_SERVER")
 SMTP_PORT = os.getenv("SMTP_PORT")
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-TO_EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
+TO_EMAIL_ADDRESS = os.getenv("TO_EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+
+SERVICE_ACCOUNT_FILE = "therook-1a7136b65746.json"
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+client = gspread.authorize(creds)
+
+# Open Google Sheet by name or ID
+SPREADSHEET_ID = "1y2Nw6DifAeT719XO0pqgsiqdlkPPELdSS3JlQu_muH0"
+sheet = client.open_by_key(SPREADSHEET_ID).sheet1  # Select the first sheet
 
 logging_config = {
     "version": 1,
@@ -197,7 +215,7 @@ async def rapid_pro_callback(message: RapidProMessage):
 
 
 @app.post("/send-email")
-async def send_email(message: RapidProMessage):
+async def send_email(message: RapidProEmailMessage):
     try:
         # Create the email
         msg = MIMEMultipart()
@@ -206,18 +224,26 @@ async def send_email(message: RapidProMessage):
         msg["Subject"] = "New RapidPro Message"
 
         # Add the message text
-        msg.attach(MIMEText(message.text, "plain"))
+        msg.attach(MIMEText(str(message.results), "plain"))
 
         # Connect to the SMTP server and send the email
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            server.sendmail(EMAIL_ADDRESS, EMAIL_ADDRESS, msg.as_string())
+            server.sendmail(EMAIL_ADDRESS, [TO_EMAIL_ADDRESS], msg.as_string())
 
         return {"status": "Email sent successfully"}
     except Exception as e:
         logger.error(f"Failed to send email: {e}")
         return {"status": "Failed to send email", "error": str(e)}
+
+
+@app.post("/sendToSheet")
+def write_to_sheet(message: RapidProEmailMessage):
+    try:
+        sheet.append_row([message.results])
+    except Exception as e:
+        return {"status": "Failed to write to sheet", "error": str(e)}
 
 
 if __name__ == "__main__":
