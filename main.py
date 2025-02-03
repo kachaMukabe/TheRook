@@ -241,6 +241,9 @@ async def send_email(message: RapidProEmailMessage):
 @app.post("/sendToSheet")
 def write_to_sheet(message: RapidProEmailMessage):
     try:
+        logger.info("In send to sheet kinda")
+        logger.info(message)
+        logger.info(message.results)
         sheet.append_row([message.results])
     except Exception as e:
         return {"status": "Failed to write to sheet", "error": str(e)}
