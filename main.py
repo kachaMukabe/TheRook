@@ -244,9 +244,27 @@ def write_to_sheet(message: RapidProEmailMessage):
         logger.info("In send to sheet kinda")
         logger.info(message)
         logger.info(message.results)
+        res = message.results
+        row = [
+            res["customer_full_name"]["value"],
+            res["address"]["value"],
+            res["cusstomer_nrc"]["value"],
+            message.contact.urn,
+            res["email"]["value"],
+            res["buiness_name"]["value"],
+            res["business_type"]["value"],
+            res["crop_type"]["value"],
+            res["documentation"]["value"],
+            res["market_for_crops"]["value"],
+            res["financing_requirements"]["value"],
+            res["farm_hectorage"]["value"],
+            res["mechanization_requirement"]["value"],
+            res["mechanization_type"]["value"],
+            res["water_resources"]["value"],
+        ]
         values = [value["value"] for key, value in message.results.items()]
         values.append(message.contact.urn)
-        sheet.append_row(values)
+        sheet.append_row(row)
     except Exception as e:
         return {"status": "Failed to write to sheet", "error": str(e)}
 
