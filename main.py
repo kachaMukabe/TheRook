@@ -248,7 +248,7 @@ def write_to_sheet(message: RapidProEmailMessage):
         row = [
             res["customer_full_name"]["value"],
             res["address"]["value"],
-            res["cusstomer_nrc"]["value"],
+            res["customer_nrc"]["value"],
             message.contact.urn,
             res["email"]["value"],
             res["buiness_name"]["value"],
