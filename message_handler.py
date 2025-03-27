@@ -42,6 +42,13 @@ async def handle_whatsapp_message(req: WebhookMessage, rapid_pro_channel: str):
                 await send_to_rapid_pro(
                     message.text.body, message.from_user, rapid_pro_channel
                 )
+            case "interactive":
+                if message.interactive and message.interactive.list_reply:
+                    await send_to_rapid_pro(
+                        message.interactive.list_reply.id,
+                        message.from_user,
+                        rapid_pro_channel,
+                    )
         # await handle_messages(messages, metadata)
     # if statuses:
     #    print("Handle status")
