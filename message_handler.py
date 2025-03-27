@@ -1,46 +1,16 @@
-import re
 import httpx
 import os
-import sys
-import logging
-from pprint import pprint
 
 from dotenv import load_dotenv
 from typing import List
-from models import Message, MetaData, Status, WebhookMessage, Section, ProductSection
+from models.webhook import MetaData, WebhookMessage, Message
+from models.whatsapp import ProductSection, Section
+
 
 # from pangea_client import check_url, redact_message, scan_file
 
 load_dotenv()
 
-logging_config = {
-    "version": 1,
-    "formatters": {
-        "default": {
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "stream": sys.stdout,
-            "formatter": "default",
-        },
-        "file": {
-            "class": "logging.FileHandler",
-            "filename": "app.log",
-            "formatter": "default",
-        },
-    },
-    "root": {
-        "level": "INFO",
-        "handlers": ["console", "file"],
-    },
-}
-
-logging.config.dictConfig(logging_config)
-
-logger = logging.getLogger(__name__)
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 GRAPH_API_TOKEN = os.getenv("GRAPH_API_TOKEN")
@@ -48,16 +18,16 @@ BUSINESS_PHONE_ID = os.getenv("BUSINESS_PHONE_ID")
 RAPID_PRO_URL = os.getenv("RAPID_PRO_URL")
 
 
-async def handle_whatsapp_message(message: WebhookMessage):
-    if not message.entry:
+async def handle_whatsapp_message(req: WebhookMessage, rapid_pro_channel: str):
+    if not req.entry:
         return
 
-    if not message.entry[0].changes:
+    if not req.entry[0].changes:
         return
 
     # pprint(message)
 
-    changes = message.entry[0].changes
+    changes = req.entry[0].changes
     change_field = changes[0].field
 
     metadata = changes[0].value.metadata
@@ -66,28 +36,24 @@ async def handle_whatsapp_message(message: WebhookMessage):
     # statuses = changes[0].value.statuses if changes[0].value.statuses else None
 
     if messages:
-        print("Handle message")
-        logging.info("Handle message")
-        await handle_messages(messages, metadata)
+        message = messages[0]
+        match message.type:
+            case "text":
+                await send_to_rapid_pro(
+                    message.text.body, message.from_user, rapid_pro_channel
+                )
+        # await handle_messages(messages, metadata)
     # if statuses:
     #    print("Handle status")
     #    handle_statuses(statuses)
 
 
-# [{'value': {'messaging_product': 'whatsapp', 'metadata': {'display_phone_number': '15550785330', 'phone_number_id': '103460055715834'}, 'contacts': [{'profile': {'name': 'Kacha'}, 'wa_id': '260966581925'}], 'messages': [{'from': '260966581925', 'id': 'wamid.HBgMMjYwOTY2NTgxOTI1FQIAEhgUM0ExNURBMjY1QTM2MDkyMDIxMUEA', 'timestamp': '1725532731', 'text': {'body': 'Welcome'}, 'type': 'text'}]}, 'field': 'messages'}]
-
-
-def extract_urls(text):
-    # Regular expression pattern to match URLs
-    url_pattern = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
-
-    # Find all URLs in the text
-    urls = re.findall(url_pattern, text)
-
-    # Extract the first element of each tuple in the list of URLs
-    urls = [url[0] for url in urls]
-
-    return urls
+async def send_to_rapid_pro(text: str, sender: str, channel_id: str):
+    url = f"{RAPID_PRO_URL}/{channel_id}/receive?text={text}&sender={sender}"
+    print("Rapid url", url)
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        print(response)
 
 
 async def get_media_url(media_id: str):
@@ -117,14 +83,14 @@ async def send_message(business_number, message: Message, response_txt: str):
         "text": {"body": response_txt},
         "context": {"message_id": message.id},
     }
-    url = f"https://graph.facebook.com/v18.0/{business_number}/messages"
+    url = f"https://graph.facebook.com/v22.0/{business_number}/messages"
     headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=message_data)
         response.raise_for_status()
 
 
-async def send_rapid_message(to_user, response_text):
+async def send_rapid_message(to_user, response_text, business_number):
     message_data = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
@@ -132,9 +98,7 @@ async def send_rapid_message(to_user, response_text):
         "type": "text",
         "text": {"body": response_text},
     }
-    print(message_data)
-    logging.info(message_data)
-    url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
+    url = f"https://graph.facebook.com/v22.0/{business_number}/messages"
     headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=message_data)
@@ -142,7 +106,13 @@ async def send_rapid_message(to_user, response_text):
 
 
 async def send_interactive_list(
-    to_user, header_text, text, footer_text, button_text, sections: List[Section]
+    to_user,
+    header_text,
+    text,
+    footer_text,
+    button_text,
+    sections: List[Section],
+    business_number,
 ):
 
     message_data = {
@@ -161,17 +131,17 @@ async def send_interactive_list(
             },
         },
     }
-    logging.info("Interactive message data")
-    logging.info(message_data)
 
-    url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
+    url = f"https://graph.facebook.com/v22.0/{business_number}/messages"
     headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=message_data)
         response.raise_for_status()
 
 
-async def send_image_message(to_user, caption, media_id=None, media_url=None):
+async def send_image_message(
+    to_user, business_number, caption, media_id=None, media_url=None
+):
     image = (
         {"id": media_id, "caption": caption}
         if media_id
@@ -185,7 +155,7 @@ async def send_image_message(to_user, caption, media_id=None, media_url=None):
         "image": image,
     }
 
-    url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
+    url = f"https://graph.facebook.com/v22.0/{business_number}/messages"
     headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=message_data)
@@ -208,63 +178,60 @@ async def send_catalog_message(
         },
     }
 
-    url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
+    url = f"https://graph.facebook.com/v22.0/{BUSINESS_PHONE_ID}/messages"
     headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=message_data)
         response.raise_for_status()
 
 
-async def send_template_message(to_user, header_text, sections: List[ProductSection]):
+async def send_template_message(
+    to_user, header_text, sections: List[ProductSection], business_number
+):
     message_data = {
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": to_user,
-            "type": "template",
-            "template": {
-                "name": "view_specific_items",
-                "language": {
-                    "code": "en"
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": to_user,
+        "type": "template",
+        "template": {
+            "name": "view_specific_items",
+            "language": {"code": "en"},
+            "components": [
+                {
+                    "type": "header",
+                    "parameters": [{"type": "text", "text": header_text}],
                 },
-                "components": [
-                    {
-                        "type": "header",
-                        "parameters": [
-                            {
-                                "type": "text",
-                                "text": header_text
-                            }
-                        ]
-                    },
-                    {
-                        "type": "body",
-                        "parameters": []
-                    },
-                    {
-                        "type": "button",
-                        "sub_type": "mpm",
-                        "index": 0,
-                        "parameters": [
-                            {
-                                "type": "action",
-                                "action": {
-                                    "thumbnail_product_retailer_id": sections[0].product_items[0].product_retailer_id,
-                                    "sections": [section.model_dump() for section in sections]
-                                }
-                            }
-                        ]
-                    }
-                ]
-            }
+                {"type": "body", "parameters": []},
+                {
+                    "type": "button",
+                    "sub_type": "mpm",
+                    "index": 0,
+                    "parameters": [
+                        {
+                            "type": "action",
+                            "action": {
+                                "thumbnail_product_retailer_id": sections[0]
+                                .product_items[0]
+                                .product_retailer_id,
+                                "sections": [
+                                    section.model_dump() for section in sections
+                                ],
+                            },
+                        }
+                    ],
+                },
+            ],
+        },
     }
 
-    url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
+    url = f"https://graph.facebook.com/v22.0/{business_number}/messages"
     headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=message_data)
         response.raise_for_status()
 
-async def send_location_request_message(to_user, text):
+
+async def send_location_request_message(to_user, text, business_number):
     message_data = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",
@@ -277,7 +244,7 @@ async def send_location_request_message(to_user, text):
         },
     }
 
-    url = f"https://graph.facebook.com/v20.0/{BUSINESS_PHONE_ID}/messages"
+    url = f"https://graph.facebook.com/v22.0/{business_number}/messages"
     headers = {"Authorization": f"Bearer {GRAPH_API_TOKEN}"}
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=message_data)
@@ -287,15 +254,9 @@ async def send_location_request_message(to_user, text):
 async def handle_messages(messages: List[Message], metadata: MetaData):
     message = messages[0]
     if message.type == "text":
-        print("text")
-        logging.info("text")
-        #            count, redacted_text = redact_message(message.text.body)
-        #            if count > 0:
         url = f"{RAPID_PRO_URL}/receive?text={message.text.body}&sender={message.from_user}"
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
-            print(response)
-            logging.info(response)
     elif message.type == "reaction":
         media_url = await get_media_url(message.image.id)
         content = await download_media(media_url)
@@ -305,25 +266,19 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
         url = f"{RAPID_PRO_URL}/receive?text={message.interactive.list_reply.id}&sender={message.from_user}"
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
-            print(response)
-            logging.info(response)
     elif message.type == "location":
         url = f"{RAPID_PRO_URL}/receive?text={message.location.latitude},{message.location.longitude}&sender={message.from_user}"
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
-            print(response)
-            logging.info(response)
     elif message.type == "order":
         url = f"{RAPID_PRO_URL}/receive?text=order_ {message.order.catalog_id}&sender={message.from_user}"
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
-            print(response)
-            logging.info(response)
         # await send_message(
         #    metadata.phone_number_id,
         #    message,
         #    "Your order has been placed. You will recieve a payment link shortly",
-        #)
+        # )
     else:
         pass
     # match message.type:
@@ -373,5 +328,5 @@ async def handle_messages(messages: List[Message], metadata: MetaData):
     #         print("Other")
 
 
-def handle_statuses(statuses: List[Status]):
-    print(statuses)
+# def handle_statuses(statuses: List[Status]):
+#     print(statuses)
